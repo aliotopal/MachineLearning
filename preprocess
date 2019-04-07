@@ -1,0 +1,58 @@
+#-------------------------------------------------------------------------------
+# Name:        Data PreProcess - Numerical and Categorical text
+# Purpose:     Remove all the null values from numerical columns and replace them with the mean,
+#              Scale numerical values(int64, float64) by using min-max normalization,
+#              Convert texts into categorical values by using factorize() method,
+#              Split all data into train and test data by specified ratio.
+#
+# Author:      Ali Osman Topal
+#
+# Created:     04/04/2019
+# Copyright:   (c) AOT 2019
+# How to use:  Just copy this file and call the functions for your dataset:
+#  >>         mydataset = pd.read_csv('mydata.csv')
+#  >>         mydataset = removeNulls(mydataset)
+#  >>         mydataset = featureScale(mydataset)
+#  >>         mydataset = textCateg(mydataset)
+#  >>         myTrainSet, myTestSet = splitTrainTest(mydataset, 0.2)
+# Now your dataset is ready for ML algorithms. 
+#-------------------------------------------------------------------------------
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import Imputer
+imputer = Imputer(strategy = 'mean')
+def removeNulls(data):
+    X_nr = data.select_dtypes(include=['int64','float64'])  # select all numerical columns
+    imputer.fit(X_nr)  # find the mean of numerical columns
+    X_nrNoNull = imputer.transform(X_nr)  # replace nulls with the mean
+    X_nr = pd.DataFrame(X_nrNoNull, columns=X_nr.columns)  # conver X_nrNoNull from array to pandas dataframe
+    data[X_nr.columns] = X_nr  # replace the numerical columns in df1 with X_nr.
+
+    # Replace nulls with 'No'
+    objects = data.select_dtypes(include=['object']).columns
+    data[objects] = data[objects].fillna('NO')
+    return data
+
+def featureScale(data):
+    X_nr = data.select_dtypes(include=['int64','float64'])  # select all numerical columns
+    min = X_nr.min()
+    max = X_nr.max()
+    mean = X_nr.mean()
+    X_nr = (X_nr - mean)/(max-min)
+    data[X_nr.columns] = X_nr  # replace the numerical columns in df1 with X_nr.
+    return data
+
+def textCateg(data):
+    objects = data.select_dtypes(include=['object']).columns
+    for i in range(len(objects)):
+        Xcat = data[objects[i]].factorize()[0]
+        data[objects[i]] = Xcat
+    return data
+
+def splitTrainTest(data, test_ratio):
+    shuffledRowsNumbers = np.random.permutation(len(data))
+    testDataSize = int(len(data) * test_ratio)
+    testExamples = shuffledRowsNumbers[:testDataSize]
+    trainExamples = shuffledRowsNumbers[testDataSize:]
+    return data.iloc[trainExamples], data.iloc[testExamples]
+    # return data by its row numbers (index)
